@@ -41,14 +41,14 @@ Simliarly, we get for the away team's probability to score exactly j goals, if i
 $P_j(\lambda_a) = \frac{\lambda_a^j}{j!} e^{-\lambda_a}$, with j = 0,1,2... 
 </center>
 
-Let's see an example for $\lambda_h$ = 1.3 and k=2:
+Let's see an example for $\lambda_h$ = 1.3 and k=0-5:
 
 ```r
-lambda_h = 1.3; k = 2; p_k <- exp(-lambda_h) * lambda_h^k / factorial(k); p_k
+lambda_h = 1.3; k = c(0:5); p_k <- exp(-lambda_h) * lambda_h^k / factorial(k); p_k
 ```
 
 ```
-## [1] 0.2303
+## [1] 0.272532 0.354291 0.230289 0.099792 0.032432 0.008432
 ```
 
 ---
