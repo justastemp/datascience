@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fair football odds</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Fair football odds">
+  <meta name="author" content="The guy from">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Fair football odds</h1>
+    <h2>Yes, that's how bookies do it (at least in principle)</h2>
+    <p>The guy from<br/>BYOBookie.com</p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Basic considerations</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol>
+<li><p>In reasonably good approximation, football goals are </p>
+
+<ul>
+<li>independent of each other</li>
+<li>scarce</li>
+</ul></li>
+<li><p>Such independent and scarce events can be described by Poisson distributions</p>
+
+<ul>
+<li>To describe a Poisson distributed random variable, we only need its expectation value \(\lambda\), i.e. <span style="color:blue">its average</span></li>
+<li>If we know \(\lambda\), we can calculate the whole distribution</li>
+</ul></li>
+<li><p>This means for football teams: Once we know how many <span style="color:blue">goals to expect for a team on average</span>, we can calculate the probability for this team to score exactly 0, 1, 2... goals</p></li>
+<li><p>We can then easily compute the probabilitiy of each final result</p></li>
+<li><p>From the final results we can get the odds for a <span style="color:blue">home win / draw / away win</span> bet</p></li>
+</ol>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>The necessary maths</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Assume we expect \(\lambda_h\) as the average number of goals for the home team. The home team&#39;s probability \(P_k(\lambda_h)\) to score exactly k goals then is:</p>
+
+<p><center>
+\(P_k(\lambda_h) = \frac{\lambda_h^k}{k!} e^{-\lambda_h}\), with k = 0,1,2... 
+</center></p>
+
+<p>Simliarly, we get for the away team&#39;s probability to score exactly j goals, if its expected average is \(\lambda_a\):<center>
+\(P_j(\lambda_a) = \frac{\lambda_a^j}{j!} e^{-\lambda_a}\), with j = 0,1,2... 
+</center></p>
+
+<p>Let&#39;s see an example for \(\lambda_h\) = 1.3 and k=2:</p>
+
+<pre><code class="r">lambda_h = 1.3; k = 2; p_k &lt;- exp(-lambda_h) * lambda_h^k / factorial(k); p_k
+</code></pre>
+
+<pre><code>## [1] 0.2303
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>The necessary maths (cont&#39;d)</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Since we treat the goals as being independent from each other, the probility \(P_{kj}(\lambda_h,\lambda_a)\) of a final score of k:j (0:0, 1:0, 0:1, 2:0, 1:1, etc) simply is the product of the home team scoring exactly k goals and the away team scoring exactly j goals:</p>
+
+<p><center>
+\(P_{kj}(\lambda_h,\lambda_a) = P_k(\lambda_h) * P_j(\lambda_a)\), with k,j = 0,1,2... 
+</center></p>
+
+<p>The rest is easy:</p>
+
+<ul>
+<li>Get the probability \(P_{Home}\) of a home win by adding the probabilites of all scores in which the home team wins</li>
+<li>Do the same for \(P_{Draw}\) and \(P_{Away}\)</li>
+<li>The fair betting odds are \(1/P_{Home}\), \(1/P_{Draw}\) and \(1/P_{Away}\)</li>
+<li>Done!</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Does it work?</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>1) In general, it&#39;s a very good approximation</p>
+
+<p>2) Main problems </p>
+
+<ul>
+<li>Usually underestimates the probability of a draw</li>
+<li>Especially underestimates the probability of a 0:0</li>
+</ul>
+
+<p>3) Reason and solution</p>
+
+<ul>
+<li>Numbers of goals of home and away team are not completely independent of each other</li>
+<li>Can be remedied by using a bivariate Poisson distribution</li>
+</ul>
+
+<p>4) More information</p>
+
+<ul>
+<li>Find a discussion with example here: 
+<a href="http://www.byobookie.com/modelling-football/">http://www.byobookie.com/modelling-football/</a></li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Basic considerations'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='The necessary maths'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='The necessary maths (cont&#39;d)'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Does it work?'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- MathJax: Fall back to local if CDN offline but local image fonts are not supported (saves >100MB) -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        processEscapes: true
+      }
+    });
+  </script>
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <!-- <script src="https://c328740.ssl.cf1.rackcdn.com/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script> -->
+  <script>window.MathJax || document.write('<script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS":{imageFont:null}});<\/script><script src="libraries/widgets/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"><\/script>')
+</script>
+<!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
