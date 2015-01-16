@@ -1,0 +1,137 @@
+---
+output: pdf_document
+---
+Machine learning project: Human activity recognition
+==============================
+
+## Synopsis
+
+This analysis shows that machine learning methods can be used to identify in which way a weightlifting exercise has been done. In the experiment different weight lifters were asked to do their exercises in five different ways; using random forests, it was possible to correctly identify the type in which the exercise was done with an accuracy of 98% and better.
+
+## Introduction
+
+This report analyses the measurement data from an experiment in which different weight lifters were asked to do their exercises in five different ways: In the correct way, i.e. according to exercise specifications (method A), and in 4 different wrong ways (methods B-E). Throughout these exercises, movement data were collected from sensors at 4 different points, which were located at the forearm, arm, belt and dumbbell. The collected data are analysed in this report.
+
+## Loading and processing the data
+
+Downloading and loading the original data for training and testing.
+```{r cache=TRUE}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+              destfile = "training.csv", method="curl")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+              destfile = "testing.csv", method="curl")
+training_orig <- read.csv("training.csv")
+testing_orig <- read.csv("testing.csv")
+dim(training_orig)
+```
+Many columns have `r sum(is.na(training_orig$max_roll_belt))` NA entries, i.e. are mostly empty, which is reason enough to get rid of those columns. We do this for both training and test set, but since the last column in the test set ("problem_id") is named differently than in the training set ("classe"), we have to take care of that, too. As we are at it, we will also drop the first five columns, which include index, user name and time data and which should be of no importance for our model fit.
+
+```{r cache=TRUE}
+drop_cols <- colnames(training_orig[colSums(is.na(training_orig)) > 1000])
+drop_cols <- c(colnames(training_orig)[1:5],drop_cols)
+training_small <- training_orig[, !(names(training_orig) %in% drop_cols)]
+testing_small <- testing_orig[, !(names(testing_orig) %in% drop_cols)]
+colnames(testing_small)[length(colnames(testing_small))] <- "classe"
+```
+We are now down to a training set with `r dim(training_small)[2]` columns, i.e. to `r dim(training_small)[2]-1` possible predictors. Time to split the training set into a smaller training set and a validation set.
+
+```{r cache=TRUE}
+set.seed(1904)
+inTrain <- createDataPartition(training_small$classe, p=0.75, list=FALSE)
+train <-training_small[inTrain,]
+valid <-training_small[-inTrain,]
+```
+
+When looking closely at our data, we see a number of factor columns for variables that should in fact be numeric, i.e. for the kurtosis and the skewness for many of the measurements. So we should convert these columns to numeric, but we have to do this stepwise. 
+
+```{r cache=TRUE}
+bla <- train
+ctn <- colnames(train)[2:(length(colnames(train))-1)]
+bla[,ctn] <- lapply(bla[,ctn,drop=FALSE],as.character)
+suppressWarnings(bla[,ctn] <- lapply(bla[,ctn,drop=FALSE],as.numeric))
+```
+
+We find that these converted columns now mostly consist of NA's, which means that they were practically empty to begin with. Time to drop them, and we will do so for all data frames of importance. We also drop the columns "new_window" and "num_window", since they don't seem to contain sensory data.
+
+```{r cache=TRUE}
+drop2 <- colnames(bla[colSums(is.na(bla)) > 1000])
+drop2 <- c("new_window","num_window",drop2)
+train <- train[, !(names(train) %in% drop2)]
+valid <- valid[, !(names(valid) %in% drop2)]
+training_small <- training_small[, !(names(training_small) %in% drop2)]
+testing_small <- testing_small[, !(names(testing_small) %in% drop2)]
+```
+
+Now we are down to a training set with `r dim(training_small)[2]` columns, i.e. to `r dim(training_small)[2]-1` possible predictors. It's finally time for some fitting action. 
+
+## Fitting of models
+
+Since I'm doing this on my trusty laptop (which was build in 2006), I will start with some smaller models. Let's go and see how well a single decision tree can work by fitting a maximum tree:
+
+```{r cache=TRUE}
+suppressMessages(library(caret))
+suppressMessages(library(rpart))
+rpartfit<- rpart(classe~., data=train)
+rpartpred <- predict(rpartfit, newdata=valid, type="class")
+suppressMessages(rpartconf<- confusionMatrix(rpartpred,valid$classe))
+rpartconf$overall[1]
+```
+
+```{r cache=TRUE, echo=FALSE}
+rpartpredtrain <- predict(rpartfit, newdata=train, type="class")
+suppressMessages(conftrain <- confusionMatrix(rpartpredtrain,train$classe))
+```
+Well, that's not too good, and the accuracy on the validation set is similar to the accuracy for the training set (`r conftrain$overall[[1]]`). We should probably try another model... How about linear discriminant analysis? 
+
+```{r cache=TRUE}
+suppressMessages(ldafit<- train(classe~., data=train, method="lda"))
+ldapred <- predict(ldafit, newdata=valid)
+ldaconf <- confusionMatrix(ldapred,valid$classe)
+ldaconf$overall[1]
+```
+
+```{r cache=TRUE, echo=FALSE}
+ldapredtrain <- predict(ldafit, newdata=train)
+suppressMessages(confldatrain <- confusionMatrix(ldapredtrain,train$classe))
+```
+
+Even worse, and again the accuracy on the validation set is similar to the accuracy for the training set (`r confldatrain$overall[[1]]`). Seems like it's time get out the big guns - random forests. Since this takes a very long time on my laptop (I have done it in an interactive console), I'm not going to do this again in this write-up; instead, I will show how to do the calculations, but then go ahead and load the saved model.
+
+```{r cache=TRUE, eval=FALSE}
+rffit<- train(classe~., data=train, method="rf")
+save(rffit, file="RFfit.RData")
+```
+
+
+```{r cache=TRUE}
+suppressMessages(library(randomForest))
+load("RFfit.RData")
+rffit <- rffit
+rffit$results
+rffit$finalModel
+```
+
+The random forest model gives us an accuracy of 98% on the training set, and the confusion matrix is nearly diagonal. Let's see how the model does on the validation set.
+
+```{r cache=TRUE}
+rfpredict <- predict(rffit,newdata=valid)
+suppressMessages(rfconf <- confusionMatrix(rfpredict,valid$classe))
+rfconf$table
+rfconf$overall
+```
+Now that's not a bad accuracy we get after applying our fitted model to the validation set! Recall that we did not use this validation set to fit any of the parameters, so this accuracy of 99% is easily good enough to call this model our final model. The only thing left to do is to apply the model to our test set, which we do twice: Once to see the probabilities with which a test case is assigned to each class, and the second time with the final classification.
+```{r cache=TRUE}
+predict(rffit,testing_small,type="prob")
+predict(rffit,newdata = testing_small)
+```
+
+And that's it - we now classified each of the test cases to a class. The expected error rate of our classifcation should be more or less the same as the error rate we saw for the validation set, since the model was fitted independently of both the validation and test set. Since we saw a classification accuracy of 99% in the validation set and a accuracy of 98% in the training set, we should expect a similar accuracy for the test set.
+
+
+
+
+
+
+
+
+
